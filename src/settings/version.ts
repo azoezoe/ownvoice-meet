@@ -18,7 +18,7 @@ export function isNewer(tag: string, current: string): boolean {
   return a.pre > b.pre;
 }
 
-export const LATEST_RELEASE_URL = 'https://api.github.com/repos/Zaious/ownvoice-meet/releases/latest';
+export const LATEST_RELEASE_URL = 'https://api.github.com/repos/azoezoe/ownvoice-meet/releases/latest';
 
 /** The newest published release, if it is newer than `current`. Never throws. */
 export async function newerRelease(current: string, fetchFn: typeof fetch = fetch): Promise<{ tag: string; url: string } | null> {

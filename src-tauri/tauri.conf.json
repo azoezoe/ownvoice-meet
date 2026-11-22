@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OwnVoice Meet",
-  "version": "0.2.3",
-  "identifier": "io.github.zaious.ownvoice-meet",
+  "productName": "Zoe Meet",
+  "version": "0.2.4",
+  "identifier": "io.github.azoezoe.zoe-meet",
   "build": {
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "OwnVoice Meet",
+        "title": "Zoe Meet",
         "url": "index.html",
         "width": 760,
         "height": 460,
@@ -30,16 +30,19 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "publisher": "ChronicleCore Studio",
+    "targets": [
+      "nsis"
+    ],
+    "publisher": "azoezoe",
     "copyright": "Copyright 2026 ChronicleCore Studio. Apache License 2.0.",
     "category": "Productivity",
     "shortDescription": "Understand the meeting. Answer in your own voice.",
     "longDescription": "Type what you mean in your own language and read short, natural English aloud in your own voice. Live captions with translation and a bilingual script panel help you follow and prepare.",
-    "homepage": "https://github.com/Zaious/ownvoice-meet",
+    "homepage": "https://github.com/azoezoe/ownvoice-meet",
     "resources": {
       "../LICENSE": "LICENSE.txt",
-      "../NOTICE": "NOTICE.txt"
+      "../NOTICE": "NOTICE.txt",
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.txt"
     },
     "windows": {
       "nsis": {

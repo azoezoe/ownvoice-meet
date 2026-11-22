@@ -1,5 +1,5 @@
 // Saved sessions. While listening with saving on, each session gets a folder (under the user's
-// Documents folder, "OwnVoice Meet", unless Settings names another) holding:
+// Documents folder, "Zoe Meet", unless Settings names another) holding:
 //   NN-<segment>.wav  the recording, one file per segment (save mode "audio"; recorder.rs)
 //   NN-<segment>.md   that segment's transcript
 //   transcript.md     the whole session, segment by segment
@@ -85,7 +85,7 @@ pub fn base_dir(app: &AppHandle, s: &Settings) -> Result<PathBuf, String> {
     if let Some(dir) = std::env::var_os("OWNVOICE_CONFIG_DIR").filter(|d| !d.is_empty()) {
         return Ok(PathBuf::from(dir).join("sessions"));
     }
-    app.path().document_dir().map(|d| d.join("OwnVoice Meet")).map_err(|e| format!("找不到「文件」資料夾：{e}"))
+    app.path().document_dir().map(|d| d.join("Zoe Meet")).map_err(|e| format!("找不到「文件」資料夾：{e}"))
 }
 
 /// Start saving a listening session, if Settings asks for it (or `force_audio`, the record-only

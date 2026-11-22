@@ -1,0 +1,44 @@
+name: Mac build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apple-silicon:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Rust tests on macOS
+        working-directory: src-tauri
+        run: cargo test --lib --target aarch64-apple-darwin --locked
+      - name: Build Mac app and disk image
+        run: |
+          node scripts/third-party-licenses.mjs aarch64-apple-darwin
+          npm run tauri build -- --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
+      - name: Zip the app preserving executable bits and bundle metadata
+        run: ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Zoe Meet.app' Zoe-Meet-Mac-arm64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Zoe-Meet-Mac-arm64
+          path: |
+            Zoe-Meet-Mac-arm64.zip
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg

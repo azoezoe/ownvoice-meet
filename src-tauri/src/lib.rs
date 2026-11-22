@@ -7,6 +7,8 @@
 
 mod archive;
 mod audio;
+#[cfg(target_os = "macos")]
+mod macos_audio;
 mod captions;
 mod catalog;
 mod demo;
@@ -194,7 +196,15 @@ fn compose_reply(app: AppHandle, state: Shared<'_>, zh: String) -> Result<u64, S
 
 /// Start or stop capturing system audio and transcribing it.
 #[tauri::command]
-fn set_listening(app: AppHandle, listener: State<'_, Mutex<Listener>>, on: bool) -> Result<bool, String> {
+async fn set_listening(app: AppHandle, window: tauri::WebviewWindow, on: bool) -> Result<bool, String> {
+    if on { let _ = window.set_focus(); }
+    // Permission prompts need the main run loop to stay responsive.
+    tauri::async_runtime::spawn_blocking(move || change_listening(app, on))
+        .await.map_err(|e| e.to_string())?
+}
+
+fn change_listening(app: AppHandle, on: bool) -> Result<bool, String> {
+    let listener = app.state::<Mutex<Listener>>();
     if !on {
         let saved = stop_listening(&app);
         set_listening_flag(&app, false);
@@ -356,7 +366,8 @@ struct MicCheck {
 /// Listen to a microphone for a few seconds (the check in Settings); "mic-level" events carry the
 /// level as it goes.
 #[tauri::command]
-async fn mic_check(app: AppHandle, device: String, gain: f32) -> Result<MicCheck, String> {
+async fn mic_check(app: AppHandle, window: tauri::WebviewWindow, device: String, gain: f32) -> Result<MicCheck, String> {
+    let _ = window.set_focus();
     let source = audio::Source::Mic { device, gain: gain.clamp(1.0, 16.0) };
     tauri::async_runtime::spawn_blocking(move || {
         audio::measure(source, 6.0, move |rms| {
@@ -366,6 +377,15 @@ async fn mic_check(app: AppHandle, device: String, gain: f32) -> Result<MicCheck
     .await
     .map_err(|e| e.to_string())?
     .map(|(device, peak, average)| MicCheck { device, peak, average })
+}
+
+/// Check system sound locally without a provider key, network request, or saved recording.
+#[tauri::command]
+async fn system_audio_check(window: tauri::WebviewWindow) -> Result<MicCheck, String> {
+    let _ = window.set_focus();
+    tauri::async_runtime::spawn_blocking(|| audio::measure(audio::Source::Loopback, 6.0, |_| {}))
+        .await.map_err(|e| e.to_string())?
+        .map(|(device, peak, average)| MicCheck { device, peak, average })
 }
 
 /// Start the next segment of the saved session.
@@ -488,9 +508,11 @@ fn clear_captions(app: AppHandle, state: Shared<'_>) {
 /// only get a link to the download page.
 #[tauri::command]
 fn install_kind() -> &'static str {
-    if cfg!(debug_assertions) || !cfg!(target_os = "windows") {
+    if cfg!(debug_assertions) {
         return "other";
     }
+    if cfg!(target_os = "macos") { return "macos"; }
+    if !cfg!(target_os = "windows") { return "other"; }
     let Ok(exe) = std::env::current_exe() else { return "other" };
     let installed = exe.parent().is_some_and(|d| d.join("uninstall.exe").is_file());
     if installed { "installed" } else { "portable" }
@@ -554,6 +576,7 @@ pub fn run() {
             clear_captions,
             list_microphones,
             mic_check,
+            system_audio_check,
             next_segment,
             rename_segment,
             current_segment,
@@ -603,5 +626,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running OwnVoice Meet");
+        .expect("error while running Zoe Meet");
 }

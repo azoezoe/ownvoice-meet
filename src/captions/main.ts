@@ -7,6 +7,7 @@ import { listen } from '@tauri-apps/api/event';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { isRegistered, register, unregister } from '@tauri-apps/plugin-global-shortcut';
 import { FollowBottom } from '../shared/follow.ts';
+import { adaptPlatformText } from '../shared/platform.ts';
 import { newerRelease } from '../settings/version.ts';
 import type { Automation, Segment, SegmentInfo, Session, Settings, Views } from '../shared/types.ts';
 import { setView, viewControls } from '../shared/view.ts';
@@ -14,6 +15,7 @@ import { openWindow, toggleWindow, type OptionalWindow } from '../shared/windows
 
 const REPLY_SHORTCUT = 'CommandOrControl+Shift+Space';
 const MAX_ROWS = 500;
+adaptPlatformText();
 
 const list = document.querySelector<HTMLElement>('#captions')!;
 const status = document.querySelector<HTMLElement>('#status')!;
@@ -66,10 +68,13 @@ for (const name of ['reply', 'script', 'settings'] as const) {
 
 listenBtn.addEventListener('click', async () => {
   const on = listenBtn.getAttribute('aria-pressed') !== 'true';
+  listenBtn.disabled = true;
   try {
     setListening(await invoke<boolean>('set_listening', { on }));
   } catch (e) {
     status.textContent = String(e);
+  } finally {
+    listenBtn.disabled = false;
   }
 });
 document.querySelector('#demo')!.addEventListener('click', () => void invoke('start_demo'));

@@ -68,11 +68,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: OwnVoice Meet ${{ github.ref_name }}
+          releaseName: Zoe Meet ${{ github.ref_name }}
           releaseBody: |
             Windows 10 and 11. Two downloads:
-            - `OwnVoice.Meet_*_x64-setup.exe`: installs for your user only (no administrator rights) and can update itself from Settings.
-            - `OwnVoice.Meet_*_x64_portable.zip`: unzip and run; never updates itself.
+            - `Zoe.Meet_*_x64-setup.exe`: installs for your user only (no administrator rights) and can update itself from Settings.
+            - `Zoe.Meet_*_x64_portable.zip`: unzip and run; never updates itself.
             The builds are not code-signed yet: Windows may say "Windows protected your PC"; choose More info, then Run anyway.
           releaseDraft: true
           prerelease: false
@@ -83,13 +83,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $v = '${{ github.ref_name }}'.TrimStart('v')
-          $dir = "OwnVoice Meet ${v} portable"
+          $dir = "Zoe Meet ${v} portable"
           New-Item -ItemType Directory $dir | Out-Null
-          Copy-Item src-tauri/target/release/ownvoice-meet.exe "$dir/OwnVoice Meet.exe"
+          Copy-Item src-tauri/target/release/ownvoice-meet.exe "$dir/Zoe Meet.exe"
           Copy-Item LICENSE "$dir/LICENSE.txt"
           Copy-Item NOTICE "$dir/NOTICE.txt"
           Copy-Item THIRD_PARTY_LICENSES.txt "$dir/THIRD_PARTY_LICENSES.txt"
           Copy-Item docs/PORTABLE.txt "$dir/README.txt"
-          $zip = "OwnVoice.Meet_${v}_x64_portable.zip"
+          $zip = "Zoe.Meet_${v}_x64_portable.zip"
           Compress-Archive -Path $dir -DestinationPath $zip
           gh release upload '${{ github.ref_name }}' $zip --clobber

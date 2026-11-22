@@ -8,9 +8,9 @@ export type OptionalWindow = 'reply' | 'script' | 'settings';
 
 // Reading windows are transparent so their background can fade (shared/view.ts); settings is not.
 const SPEC: Record<OptionalWindow, { url: string; title: string; width: number; height: number; transparent?: boolean }> = {
-  reply: { url: 'reply.html', title: 'OwnVoice Meet · Reply', width: 700, height: 440, transparent: true },
-  script: { url: 'script.html', title: 'OwnVoice Meet · Script', width: 620, height: 760, transparent: true },
-  settings: { url: 'settings.html', title: 'OwnVoice Meet · Settings', width: 560, height: 720 },
+  reply: { url: 'reply.html', title: 'Zoe Meet · Reply', width: 700, height: 440, transparent: true },
+  script: { url: 'script.html', title: 'Zoe Meet · Script', width: 620, height: 760, transparent: true },
+  settings: { url: 'settings.html', title: 'Zoe Meet · Settings', width: 560, height: 720 },
 };
 
 const creating = new Map<OptionalWindow, Promise<WebviewWindow | null>>();

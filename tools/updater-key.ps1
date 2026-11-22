@@ -14,7 +14,7 @@
 # Needs: Node.js (npx tauri), and the GitHub CLI signed in (gh auth login) with access to the repo.
 
 $ErrorActionPreference = 'Stop'
-$repo = 'Zaious/ownvoice-meet'
+$repo = 'azoezoe/ownvoice-meet'
 $dir = Join-Path $env:USERPROFILE '.ownvoice-meet-signing'
 $key = Join-Path $dir 'updater.key'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')

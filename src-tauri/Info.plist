@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Zoe Meet 使用你選擇的麥克風，辨識現場談話並顯示翻譯。只有按下聆聽或收音檢查時才會收音。</string>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>Zoe Meet 擷取電腦播放的會議聲音，提供即時字幕與翻譯。只有按下聆聽或收音檢查時才會收音。</string>
+</dict>
+</plist>

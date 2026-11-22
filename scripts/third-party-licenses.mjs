@@ -63,9 +63,9 @@ for (const e of entries.sort((a, b) => a.who.localeCompare(b.who))) {
 }
 const rule = '-'.repeat(78);
 const out = [
-  'OwnVoice Meet: third-party licences',
+  'Zoe Meet: third-party licences',
   '',
-  `Everything below is compiled into, or shipped with, OwnVoice Meet for ${target}. OwnVoice Meet itself is licensed under the Apache License 2.0 (see LICENSE and NOTICE).`,
+  `Everything below is compiled into, or shipped with, Zoe Meet for ${target}. Zoe Meet itself is licensed under the Apache License 2.0 (see LICENSE and NOTICE).`,
   `${entries.length} components; ${groups.size} distinct licence texts.`,
   '',
 ];

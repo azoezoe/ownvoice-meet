@@ -9,12 +9,15 @@ import { listen } from '@tauri-apps/api/event';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type { CatalogModel, LiveCaptionsSetup, MicCheck, Settings, UsageReport, UsageRow, Views } from '../shared/types.ts';
 import { setView } from '../shared/view.ts';
+import { IS_MAC, adaptPlatformText } from '../shared/platform.ts';
 import { judgeLevel } from './level.ts';
 import { hourlyLine, money, priceLine } from './price.ts';
 import { findNewer, installKind, installNewer, RELEASES_URL, type InstallKind, type Newer } from './updates.ts';
 
 const PROVIDERS = ['anthropic', 'openai', 'gemini', 'local'] as const;
 const form = document.querySelector<HTMLFormElement>('#form')!;
+adaptPlatformText();
+document.querySelector<HTMLElement>('#mac-audio-help')!.hidden = !IS_MAC;
 const saved = document.querySelector<HTMLElement>('#saved')!;
 const field = <T extends HTMLElement = HTMLInputElement>(name: string) => form.elements.namedItem(name) as unknown as T;
 
@@ -233,11 +236,11 @@ let appVersion = '';
 let kind: InstallKind = 'other';
 let newer: Newer | null = null;
 
-const KIND_LABEL: Record<InstallKind, string> = { installed: '安裝版', portable: '免安裝版', other: '開發版' };
+const KIND_LABEL: Record<InstallKind, string> = { installed: '安裝版', portable: '免安裝版', macos: 'Mac 版', other: '開發版' };
 
 async function showVersion(): Promise<void> {
   [appVersion, kind] = await Promise.all([getVersion().catch(() => ''), installKind()]);
-  document.querySelector('#version')!.textContent = `OwnVoice Meet ${appVersion}（${KIND_LABEL[kind]}）`;
+  document.querySelector('#version')!.textContent = `Zoe Meet ${appVersion}（${KIND_LABEL[kind]}）`;
 }
 
 checkBtn.addEventListener('click', () => void runCheck());
@@ -388,6 +391,23 @@ document.querySelector('#mic-check')!.addEventListener('click', async (e) => {
   }
 });
 
+document.querySelector('#system-check')!.addEventListener('click', async (e) => {
+  const btn = e.currentTarget as HTMLButtonElement;
+  const result = document.querySelector<HTMLElement>('#system-result')!;
+  btn.disabled = true;
+  result.textContent = '檢查中，請播放會議或影片的聲音…';
+  try {
+    const r = await invoke<MicCheck>('system_audio_check');
+    result.textContent = r.peak < 0.003
+      ? `${r.device}：沒有聽到電腦聲音。請確認正在播放聲音，並允許系統音訊錄製。`
+      : `${r.device}：已收到電腦聲音，可以開始。`;
+  } catch (err) {
+    result.textContent = String(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 document.querySelector('#open-archive')!.addEventListener('click', async () => {
   const out = document.querySelector<HTMLElement>('#archive-result')!;
   try {
@@ -400,6 +420,10 @@ document.querySelector('#open-archive')!.addEventListener('click', async () => {
 
 // Applies at once, like the controls in the reading windows; the save button does not touch it.
 const hideFromCapture = document.querySelector<HTMLInputElement>('#hide_from_capture')!;
+if (IS_MAC) {
+  hideFromCapture.disabled = true;
+  hideFromCapture.closest('label')!.lastChild!.textContent = ' macOS 上無法保證隱藏回覆與講稿；分享時請只選要展示的視窗。';
+}
 hideFromCapture.addEventListener('change', () => void setView({ hide_from_capture: hideFromCapture.checked }));
 void listen<Views>('view', (e) => (hideFromCapture.checked = e.payload.hide_from_capture));
 

@@ -69,15 +69,16 @@ pub fn set_click_through(app: &AppHandle, on: bool) {
 }
 
 pub fn setup(app: &AppHandle) -> tauri::Result<()> {
-    let through = CheckMenuItem::with_id(app, "click_through", "滑鼠穿透字幕視窗（Ctrl+Shift+F8）", true, false, None::<&str>)?;
+    let through_label = if cfg!(target_os = "macos") { "滑鼠穿透字幕視窗（⌘+Shift+F8）" } else { "滑鼠穿透字幕視窗（Ctrl+Shift+F8）" };
+    let through = CheckMenuItem::with_id(app, "click_through", through_label, true, false, None::<&str>)?;
     let on_top = CheckMenuItem::with_id(app, "on_top", "字幕視窗置頂", true, true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "結束 OwnVoice Meet", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "結束 Zoe Meet", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&through, &on_top, &PredefinedMenuItem::separator(app)?, &quit])?;
     if let Ok(mut slot) = app.state::<ClickThrough>().item.lock() {
         *slot = Some(through.clone());
     }
     let top = on_top.clone();
-    let mut tray = TrayIconBuilder::with_id("main").tooltip("OwnVoice Meet").menu(&menu).show_menu_on_left_click(true);
+    let mut tray = TrayIconBuilder::with_id("main").tooltip("Zoe Meet").menu(&menu).show_menu_on_left_click(true);
     if let Some(icon) = app.default_window_icon().cloned() {
         tray = tray.icon(icon);
     }

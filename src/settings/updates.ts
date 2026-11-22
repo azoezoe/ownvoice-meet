@@ -8,7 +8,7 @@ import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { newerRelease } from './version.ts';
 
-export type InstallKind = 'installed' | 'portable' | 'other';
+export type InstallKind = 'installed' | 'portable' | 'macos' | 'other';
 
 export interface Newer {
   tag: string;
@@ -18,8 +18,8 @@ export interface Newer {
   update?: Update;
 }
 
-const RELEASE_TAG_URL = 'https://github.com/Zaious/ownvoice-meet/releases/tag/';
-export const RELEASES_URL = 'https://github.com/Zaious/ownvoice-meet/releases';
+const RELEASE_TAG_URL = 'https://github.com/azoezoe/ownvoice-meet/releases/tag/';
+export const RELEASES_URL = 'https://github.com/azoezoe/ownvoice-meet/releases';
 
 export const installKind = (): Promise<InstallKind> => invoke<InstallKind>('install_kind').catch((): InstallKind => 'other');
 

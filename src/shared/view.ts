@@ -6,6 +6,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { ViewPatch, Views } from './types.ts';
+import { IS_MAC } from './platform.ts';
 
 export type ViewWindow = 'captions' | 'reply' | 'script';
 
@@ -79,6 +80,12 @@ export function privacyNote(host: HTMLElement): (v: Views) => void {
   note.className = 'private';
   host.append(note);
   return (v) => {
+    if (IS_MAC) {
+      note.textContent = '分享時請只選會議視窗';
+      note.title = 'macOS 上無法保證隱藏此視窗；分享整個螢幕時可能看到回覆與講稿。請在會議軟體中只分享要展示的視窗。';
+      note.dataset.on = 'false';
+      return;
+    }
     note.textContent = v.hide_from_capture ? '分享螢幕時隱藏' : '分享螢幕時看得到';
     note.title = v.hide_from_capture
       ? '這個視窗不會出現在螢幕分享、錄影與截圖裡（Windows 10 2004 以上）。可在「設定」關閉。'

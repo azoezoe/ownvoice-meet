@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 const SETTINGS_MAX_BYTES: u64 = 256 * 1024;
-const KEYCHAIN_SERVICE: &str = "ownvoice-meet";
+const KEYCHAIN_SERVICE: &str = "io.github.azoezoe.zoe-meet";
 /// Keys the app can hold. "local" is optional (a vLLM server started with --api-key needs it).
 pub const PROVIDERS: [&str; 4] = ["anthropic", "openai", "gemini", "local"];
 
@@ -95,7 +95,7 @@ pub struct Views {
 
 impl Default for Views {
     fn default() -> Self {
-        Self { captions: View::default(), reply: View::default(), script: View::default(), hide_from_capture: true, zh_only: false, reply_open: true }
+        Self { captions: View::default(), reply: View::default(), script: View::default(), hide_from_capture: !cfg!(target_os = "macos"), zh_only: false, reply_open: true }
     }
 }
 
@@ -339,7 +339,7 @@ mod tests {
     fn old_settings_files_get_the_default_view() {
         let s: Settings = serde_json::from_str(r#"{"stt_id":"gemini-live"}"#).unwrap();
         assert_eq!(s.view, Views::default());
-        assert!(s.view.hide_from_capture, "notes stay out of screen sharing unless the user turns it off");
+        assert_eq!(s.view.hide_from_capture, !cfg!(target_os = "macos"), "Mac cannot promise capture exclusion");
         assert!(s.view.reply_open, "the reply window opens with the app until the user closes it");
     }
 
@@ -350,7 +350,8 @@ mod tests {
         assert_eq!(v.reply, View { font_px: 48, opacity: 40 });
         assert_eq!(v.captions, View::default());
         v.apply(&ViewPatch { zh_only: Some(true), ..Default::default() }).unwrap();
-        assert!(v.zh_only && v.hide_from_capture);
+        assert!(v.zh_only);
+        assert_eq!(v.hide_from_capture, Views::default().hide_from_capture);
         assert!(v.apply(&ViewPatch { window: Some("settings".into()), font_px: Some(20), ..Default::default() }).is_err());
     }
 

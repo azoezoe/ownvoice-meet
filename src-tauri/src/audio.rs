@@ -93,10 +93,15 @@ pub fn start(
         }
         drop(stream);
     });
-    match ready_rx.recv_timeout(Duration::from_secs(5)) {
+    match ready_rx.recv_timeout(Duration::from_secs(30)) {
         Ok(Ok(device)) => Ok(Capture { stop, thread: Some(thread), device }),
         Ok(Err(e)) => Err(e),
-        Err(_) => Err("audio device did not start in time".into()),
+        Err(_) => {
+            // A permission prompt may outlive this request. Stop the worker when it returns
+            // instead of leaving an unowned capture running after the user sees an error.
+            stop.store(true, Ordering::SeqCst);
+            Err("收音裝置啟動逾時；請完成系統權限授權，再按一次聆聽或收音檢查".into())
+        }
     }
 }
 
@@ -150,7 +155,7 @@ pub fn measure(source: Source, secs: f32, on_level: impl Fn(f32) + Send + 'stati
 /// extended line, while the plain name is only the kind of device ("麥克風").
 fn device_name(d: &cpal::Device) -> String {
     let Ok(desc) = d.description() else { return String::new() };
-    if let Some(full) = desc.extended().first().filter(|l| !l.trim().is_empty()) {
+    if let Some(full) = desc.extended().find(|l| !l.trim().is_empty()) {
         return full.trim().to_string();
     }
     match desc.driver() {
@@ -159,13 +164,33 @@ fn device_name(d: &cpal::Device) -> String {
     }
 }
 
+struct Input {
+    // Fields drop in declaration order: stop the stream before destroying the native tap.
+    _stream: Option<cpal::Stream>,
+    #[cfg(target_os = "macos")]
+    _tap: Option<crate::macos_audio::SystemAudio>,
+}
+
 fn open(
     rate: u32,
     source: &Source,
     tx: mpsc::Sender<Vec<i16>>,
     record: Option<Tap>,
     on_level: impl Fn(f32) + Send + 'static,
-) -> Result<(cpal::Stream, String), String> {
+) -> Result<(Input, String), String> {
+    #[cfg(target_os = "macos")]
+    if *source == Source::Loopback {
+        let mut options = Some((tx, record, on_level));
+        let mut processor = None;
+        let tap = crate::macos_audio::SystemAudio::open(move |mono, input_rate| {
+            let proc = processor.get_or_insert_with(|| {
+                let (tx, record, on_level) = options.take().expect("audio processor initialized once");
+                Downmix::new(1, input_rate, rate, 1.0, tx, record, on_level)
+            });
+            proc.feed(mono.into_iter());
+        })?;
+        return Ok((Input { _stream: None, _tap: Some(tap) }, "Mac 系統音訊".into()));
+    }
     let host = cpal::default_host();
     let (device, supported) = match source {
         Source::Loopback => {
@@ -175,7 +200,7 @@ fn open(
         }
         Source::Mic { device: wanted, .. } => {
             let device = if wanted.is_empty() {
-                host.default_input_device().ok_or("找不到麥克風：Windows 沒有預設的錄音裝置")?
+                host.default_input_device().ok_or("找不到麥克風：系統沒有預設的輸入裝置")?
             } else {
                 labeled_inputs(&host)
                     .into_iter()
@@ -197,25 +222,25 @@ fn open(
     let on_err = |e| eprintln!("audio stream error: {e}");
     let stream = match format {
         SampleFormat::F32 => device.build_input_stream(
-            &config,
+            config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| proc.feed(data.iter().copied()),
             on_err,
             None,
         ),
         SampleFormat::I16 => device.build_input_stream(
-            &config,
+            config,
             move |data: &[i16], _: &cpal::InputCallbackInfo| proc.feed(data.iter().map(|&s| s as f32 / 32768.0)),
             on_err,
             None,
         ),
         SampleFormat::I32 => device.build_input_stream(
-            &config,
+            config,
             move |data: &[i32], _: &cpal::InputCallbackInfo| proc.feed(data.iter().map(|&s| s as f32 / 2_147_483_648.0)),
             on_err,
             None,
         ),
         SampleFormat::U16 => device.build_input_stream(
-            &config,
+            config,
             move |data: &[u16], _: &cpal::InputCallbackInfo| proc.feed(data.iter().map(|&s| (s as f32 - 32768.0) / 32768.0)),
             on_err,
             None,
@@ -224,7 +249,10 @@ fn open(
     };
     let blocked = matches!(source, Source::Mic { .. });
     let hint = |e: String| {
-        if blocked {
+        if cfg!(target_os = "macos") {
+            let permission = if blocked { "麥克風" } else { "螢幕與系統音訊錄製" };
+            format!("無法收音：{e}。請到系統設定 → 隱私權與安全性 → {permission}，允許 Zoe Meet，完成後重新開啟程式。")
+        } else if blocked {
             format!("麥克風無法開啟：{e}（若是權限問題：Windows 設定 → 隱私權與安全性 → 麥克風 → 允許桌面應用程式存取麥克風）")
         } else {
             e
@@ -232,12 +260,19 @@ fn open(
     };
     let stream = stream.map_err(|e| hint(format!("capture stream: {e}")))?;
     stream.play().map_err(|e| hint(format!("start stream: {e}")))?;
-    Ok((stream, name))
+    Ok((Input {
+        _stream: Some(stream),
+        #[cfg(target_os = "macos")]
+        _tap: None,
+    }, name))
 }
 
 /// Keeps the computer and screen awake while capturing: a laptop at a talk would otherwise go to
 /// sleep mid-session. The request belongs to the capture thread and ends with it.
-struct KeepAwake;
+struct KeepAwake {
+    #[cfg(target_os = "macos")]
+    process: Option<std::process::Child>,
+}
 
 impl KeepAwake {
     fn new() -> Self {
@@ -246,12 +281,22 @@ impl KeepAwake {
             use windows::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED, ES_SYSTEM_REQUIRED};
             SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
         }
-        KeepAwake
+        KeepAwake {
+            #[cfg(target_os = "macos")]
+            process: std::process::Command::new("/usr/bin/caffeinate")
+                .args(["-di", "-w", &std::process::id().to_string()])
+                .spawn().ok(),
+        }
     }
 }
 
 impl Drop for KeepAwake {
     fn drop(&mut self) {
+        #[cfg(target_os = "macos")]
+        if let Some(mut child) = self.process.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
         #[cfg(windows)]
         unsafe {
             use windows::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS};
