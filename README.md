@@ -5,7 +5,7 @@
 Based on OwnVoice Meet by Zaious, ChronicleCore Studio。
 本專案是 [OwnVoice Meet](https://github.com/Zaious/ownvoice-meet) 的修改版；保留 Apache 2.0 授權與原作者的 NOTICE，應用程式另名為 **Zoe Meet**。
 
-目前為第一個 Mac 測試版。已完成本機建置、介面示範和自動測試；實際收音仍需完成 macOS 的首次授權後確認，雲端辨識／翻譯也需自行填入 API key 後測試。
+目前為第一個 Mac 測試版。已完成本機建置、介面示範、自動測試及授權後的系統音訊／預設麥克風短測。系統音訊已收到播放的測試音；麥克風能回傳音量，本次環境聲偏小。雲端辨識／翻譯仍需自行填入 API key 後測試。
 
 ## Mac 使用方式
 
